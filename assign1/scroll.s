@@ -287,7 +287,7 @@ main_theLength_ge_1:
 #la $t0,theString
 
     set_in_loop:
-        //current address of a string
+
     lb $t1,theString($t3)
 
 #move $t0, $zero
@@ -305,6 +305,7 @@ main_theLength_ge_1:
     space_char:
         li $t0,' '
         #write a loop to put all space
+
         space_loop:
             sb $t0,bigString($)
 
@@ -351,9 +352,6 @@ copy_char:
     j copy_char
 
 
-
-
-
 loop_for_display:
     lw $t0,NDCOLS
     lw $t1,CHRSIZE
@@ -370,6 +368,8 @@ iter_loop:
     move $a1,$s0
     jal setUpDisplay
     jal showDisplay
+    li $a0,1
+    jal delay
     add $t2,$t2,1
     add $t0,$t0,-1
     beq $t2,$t1,end_this_fun
@@ -469,14 +469,24 @@ copy_bits_loop_in:
     j copy_bit_loop_out
 back_in:
     addi $t3,$t3,1
+    addi $t1,$t1,1
     j copy_bits_loop_in
 
 copy_bit_loop_out:
 
-beq $t1,$t4,
+    beq $t1,$t5,back_in #for (row = 0; row < NROWS; row++)
+    li $t6,80
+    mul $t6,$t6,$t5
+    add $t6,$t6,$t1
+    lb $t7,bigString($t6)
 
-addi $t3,$t3,1
-j
+    li $t6,80
+    mul $t6,$t6,$t5
+    add $t6,$t6,$t3
+    sb $t7,display($t6)
+
+    addi $t5,$t5,1
+    j copy_bit_loop_out
 
 
 all_done:
@@ -515,14 +525,44 @@ showDisplay:
 	la	$sp, -8($fp)
 
 #record current rows
-li $t0,0
+#why these?????
+#li $t0,0
 lw $t1,NROWS
 lw $t2,NDCOLS
-la $t4,bigString
-lb $t5,' '
+#la $t4,bigString
+#lb $t5,' '
 
 # ... TODO ...
 
+#printf(CLEAR);
+la	$a0, CLEAR
+li	$v0, 4
+syscall
+
+
+li $t0,0  #int i
+show_row_loop:
+    beq $t0,$t1,end_show
+    li $t3,0
+    j show_col_loop
+jump_back:
+    addi $t0,$t0,1
+    li $a0,' '
+    li	$v0,11
+    syscall
+    j show_row_loop
+
+show_col_loop:
+    beq $t3,$t2,jump_back
+    li $t4,80
+    mul $t4,$t4,$t0
+    add $t4,$t4,$t3
+    lw $a0,display($t4)
+    li	$v0, 11
+    syscall
+    addi $t3,$t3,1
+    j show_col_loop
+end_show:
 	# tear down stack frame
 	lw	$ra, -4($fp)
 	la	$sp, 4($fp)
@@ -644,33 +684,6 @@ delay__post:
 ########################################################################
 # .TEXT <isUpper>
 	.text
-isUpper:
-    sw $fp,-4($sp)
-    la $fp,-4($sp)
-    sw $ra,-4($fp)
-    sw $s0,-8($fp)
-    addi $sp,$sp,-12
-
-    move $a0,$s0
-    li $t0,65
-    li $t1,90
-
-    bgt $t0,$s0,fail_test
-    bgt $s0,$t1,fail_test
-
-    li $v0,1
-    j end_test
-
-fail_test:
-    li $v0,0
-    j end_test
-
-end_test:
-    lw $s0,-8($fp)
-    lw $ra,-4($fp)
-    la $sp,4($fp)
-    lw $fp,($fp)
-
 # Frame:	$fp, $ra, ...
 # Uses:		$a0, ...
 # Clobbers:	$v0, ...
@@ -686,6 +699,44 @@ end_test:
 # Code:
 	# set up stack frame
 	# ... TODO ...
+
+# Code:
+# set up stack frame
+sw	$fp, -4($sp)
+la	$fp, -4($sp)
+sw	$ra, -4($fp)
+la	$sp, -8($fp)
+
+# if (ch >= 'a')
+li	$v0, 'A'
+blt	$a0, $v0, isLower_ch_lt_a
+nop	# in delay slot
+isLower_ch_ge_a:
+# if (ch <= 'z')
+li	$v0, 'Z'
+bgt	$a0, $v0, isLower_ch_gt_z
+nop	# in delay slot
+isLower_ch_le_z:
+addi	$v0, $zero, 1
+j	isLower_ch_phi
+nop	# in delay slot
+
+# ... else
+isLower_ch_lt_a:
+isLower_ch_gt_z:
+move	$v0, $zero
+# fallthrough
+isLower_ch_phi:
+
+isLower__post:
+# tear down stack frame
+lw	$ra, -4($fp)
+la	$sp, 4($fp)
+lw	$fp, ($fp)
+jr	$ra
+nop	# in delay slot
+
+
 	# tear down stack frame
 	jr	$ra
 	nop	# in delay slot
@@ -697,32 +748,7 @@ end_test:
 ########################################################################
 # .TEXT <isLower>
 	.text
-isLower:
-    sw $fp,-4($sp)
-    la $fp,-4($sp)
-    sw $ra,-4($fp)
-    sw $s0,-8($fp)
-    addi $sp,$sp,-12
 
-    move $a0,$s0
-    li $t0,97
-    li $t1,122
-
-    bgt $t0,$s0,fail_test
-    bgt $s0,$t1,fail_test
-
-    li $v0,1
-    j end_test
-
-    fail_test:
-    li $v0,0
-    j end_test
-
-    end_test:
-    lw $s0,-8($fp)
-    lw $ra,-4($fp)
-    la $sp,4($fp)
-    lw $fp,($fp)
 # Frame:	$fp, $ra
 # Uses:		$a0
 # Clobbers:	$v0

@@ -287,9 +287,7 @@ main_theLength_ge_1:
 #la $t0,theString
 
     set_in_loop:
-        #should use lb/lw? previous use lw ?it is char should be 1 bytes
         //current address of a string
-#   lb $t1,$t3($t0)
     lb $t1,theString($t3)
 
 #move $t0, $zero
@@ -328,8 +326,8 @@ upper_char_writter:
     li $t4,81
     mul $t5,$t5,$t4
 #rigt way???
-    la $t6,all_chars
-    addu $t6,$t6,$t5
+# la $t6,all_chars
+# addu $t6,$t6,$t5
     j copy_char
 
 lower_char_writter:
@@ -338,21 +336,23 @@ lower_char_writter:
     addi $t5,$t5,26
     li $t4,81
     mul $t5,$t5,$t4
-    la $t6,all_chars
-    addu $t6,$t6,$t5
+# la $t6,all_chars
+#  addu $t6,$t6,$t5
     j copy_char
 
 copy_char:
-    li $t5,0
-    loop_copy:
-    lb $t7,$t5($t6)
+    lb $t7,all_chars($t5)
     #right???
     sb $t7,bigString($t0)
-    add $t0,$t0,1
-    add $t5,$t5,1
+    addi $t0,$t0,1
+    addi $t5,$t5,1
     li $t4,81
     beq $t5,$t4,next_char
-    j loop_copy
+    j copy_char
+
+
+
+
 
 loop_for_display:
     lw $t0,NDCOLS
@@ -434,17 +434,52 @@ set_if:
     li $t1,0
 
 set_else:
+    li $t0,0
+    li $t1,0
+    lw $t2,NROWS
+    out_loop:
+    li $t3,0     #t3->rows
+    beq $a0,$t1,copy_bits
+    j rows_loop
+    end_one_rowloop:
+    addi $t1,$t1,1
+    j out_loop
+
+rows_loop:
+    beq $t2,$t3,out_loop
+    li $t4,0
+    li $t5,80
+    mul $t4,$t5,$t3
+    add $t4,$t4,$t1
+    li $t5,' '
+    sb $t5,diaplay($t4)   # display[row][out_col] = ' ';
+    addi $t3,$t3,1
+    j end_one_rowloop
+
+copy_bits:
+    lw $t2,NROWS
+    move $t3,$t0 #in_col = first_col
+    li $t4,NDCOLS
+
+copy_bits_loop_in:
+#a1:length
+    beq $t3,$a1,all_done #for (in_col = first_col; in_col < length; in_col++)
+    beq $t1,$t4,all_done
+    li $t5,0   #row = 0
+    j copy_bit_loop_out
+back_in:
+    addi $t3,$t3,1
+    j copy_bits_loop_in
+
+copy_bit_loop_out:
+
+beq $t1,$t4,
+
+addi $t3,$t3,1
+j
 
 
-
-
-
-
-
-
-
-
-
+all_done:
 	# tear down stack frame
 	lw	$ra, -4($fp)
 	la	$sp, 4($fp)

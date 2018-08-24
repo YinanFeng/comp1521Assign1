@@ -251,18 +251,22 @@ main_theLength_lt_1:
 	nop	# in delay slot
 main_theLength_ge_1:
     #initialise the display to all spaces
-
+    li $t0,0
     loop_nrows:
         #record current column
         li $t3,0
         j loop_ncols
+
+    end_loop_nrows:
         add $t0,$t0,1
+        lw $t1,NROWS
         beq $t0,$t1,loop_String
         j loop_nrows
+
+
     loop_ncols:
         #record how many bytes to add in t6
 
-        #howto store it as a bytessss, print? do sb right??? load a byte right???
         li $t6,' '
         li $t7,0
 
@@ -272,7 +276,7 @@ main_theLength_ge_1:
         add,$t7,$t7,$t3
         sb $t6,display($t7)
         addi $t3,$t3,1
-        beq $t3,$t2,loop_nrows
+        beq $t3,$t4,end_loop_nrows
         j loop_ncols
 
 
@@ -297,10 +301,10 @@ main_theLength_ge_1:
     move $a0,$t1
     # beqz $s2, set_up_loop
     check_upper:
-        j isUpper
+        jal isUpper
         bnez $v0, upper_char_writter
     check_lower:
-        j isLower
+        jal isLower
         bnez $v0, lower_char_writter
     space_char:
         li $t0,' '
@@ -315,8 +319,6 @@ main_theLength_ge_1:
             j space_loop
         #add $t0,$t0,90
         #write a loop to put all space
-
-
 
 next_char:
     add $t3,$t3,1
@@ -344,6 +346,7 @@ upper_char_writter:
 #rigt way???
 # la $t6,all_chars
 # addu $t6,$t6,$t5
+    add $t4,$t4,$t5
     j copy_char
 
 lower_char_writter:
@@ -354,15 +357,16 @@ lower_char_writter:
     mul $t5,$t5,$t4
 # la $t6,all_chars
 #  addu $t6,$t6,$t5
+    add $t4,$t4,$t5
     j copy_char
 
 copy_char:
     lb $t7,all_chars($t5)
     #right???
+
     sb $t7,bigString($t0)
     addi $t0,$t0,1
     addi $t5,$t5,1
-    li $t4,81
     beq $t5,$t4,next_char
     j copy_char
 
@@ -443,10 +447,11 @@ bgez $a0,set_else
 
 set_if:
     #t0:first_col
-    li $t0,-1
+    addi $t0,$zero,-1
     mul $t0,$t0,$a0
     #t1:out_col
     li $t1,0
+    j copy_bits
 
 set_else:
     li $t0,0
@@ -461,15 +466,14 @@ set_else:
     j out_loop
 
 rows_loop:
-    beq $t2,$t3,out_loop
-    li $t4,0
+    beq $t2,$t3,end_one_rowloop
     li $t5,80
     mul $t4,$t5,$t3
     add $t4,$t4,$t1
     li $t5,' '
     sb $t5,display($t4)   # display[row][out_col] = ' ';
     addi $t3,$t3,1
-    j end_one_rowloop
+    j rows_loop
 
 copy_bits:
     lw $t2,NROWS
@@ -479,7 +483,7 @@ copy_bits:
 copy_bits_loop_in:
 #a1:length
     beq $t3,$a1,all_done #for (in_col = first_col; in_col < length; in_col++)
-    beq $t1,$t4,all_done
+    bge $t1,$t4,all_done #out_col:t1
     li $t5,0   #row = 0
     j copy_bit_loop_out
 back_in:
@@ -489,15 +493,15 @@ back_in:
 
 copy_bit_loop_out:
 
-    beq $t1,$t5,back_in #for (row = 0; row < NROWS; row++)
+    beq $t2,$t5,back_in #for (row = 0; row < NROWS; row++)
     li $t6,80
     mul $t6,$t6,$t5
-    add $t6,$t6,$t1
+    add $t6,$t6,$t3
     lb $t7,bigString($t6)
 
     li $t6,80
     mul $t6,$t6,$t5
-    add $t6,$t6,$t3
+    add $t6,$t6,$t1
     sb $t7,display($t6)
 
     addi $t5,$t5,1
@@ -562,7 +566,7 @@ show_row_loop:
     j show_col_loop
 jump_back:
     addi $t0,$t0,1
-    li $a0,' '
+    li $a0,'\n'
     li	$v0,11
     syscall
     j show_row_loop
@@ -572,7 +576,7 @@ show_col_loop:
     li $t4,80
     mul $t4,$t4,$t0
     add $t4,$t4,$t3
-    lw $a0,display($t4)
+    lb $a0,display($t4)
     li	$v0, 11
     syscall
     addi $t3,$t3,1
@@ -687,58 +691,36 @@ delay__post:
 	nop	# in delay slot
 
 
-
-
-
-
-
-
-
-
-
 ########################################################################
 # .TEXT <isUpper>
-	.text
-# Frame:	$fp, $ra, ...
-# Uses:		$a0, ...
-# Clobbers:	$v0, ...
-
-# Locals:
-#	- ...
-
-# Structure:
+.text
 isUpper:
-#	-> [prologue]
-#	-> [epilogue]
 
-# Code:
-	# set up stack frame
-	# ... TODO ...
-
-# Code:
-# set up stack frame
 sw	$fp, -4($sp)
 la	$fp, -4($sp)
 sw	$ra, -4($fp)
 la	$sp, -8($fp)
 
-# if (ch >= 'a')
+# if (ch >= 'A')
 li	$v0, 'A'
-blt	$a0, $v0, isUpper_ch_lt_a
+blt	$a0, $v0, isUpper_ch_lt_A
 nop	# in delay slot
-isUpper_ch_ge_a:
-# if (ch <= 'z')
+isUpper_ch_ge_A:
+# if (ch <= 'Z')
 li	$v0, 'Z'
-bgt	$a0, $v0, isUpper_ch_gt_z
+bgt	$a0, $v0, isUpper_ch_gt_Z
 nop	# in delay slot
-isUpper_ch_le_z:
+isUpper_ch_le_Z:
+
+
+
 addi	$v0, $zero, 1
 j	isUpper_ch_phi
 nop	# in delay slot
 
 # ... else
-isUpper_ch_lt_a:
-isUpper_ch_gt_z:
+isUpper_ch_lt_A:
+isUpper_ch_gt_Z:
 move	$v0, $zero
 # fallthrough
 isUpper_ch_phi:
@@ -752,9 +734,7 @@ jr	$ra
 nop	# in delay slot
 
 
-	# tear down stack frame
-	jr	$ra
-	nop	# in delay slot
+
 
 
 
@@ -762,8 +742,9 @@ nop	# in delay slot
 
 ########################################################################
 # .TEXT <isLower>
-	.text
+.text
 isLower:
+
 # Frame:	$fp, $ra
 # Uses:		$a0
 # Clobbers:	$v0
@@ -784,39 +765,39 @@ isLower:
 #	-> [epilogue]
 
 # Code:
-	# set up stack frame
-	sw	$fp, -4($sp)
-	la	$fp, -4($sp)
-	sw	$ra, -4($fp)
-	la	$sp, -8($fp)
+# set up stack frame
+sw	$fp, -4($sp)
+la	$fp, -4($sp)
+sw	$ra, -4($fp)
+la	$sp, -8($fp)
 
-	# if (ch >= 'a')
-	li	$v0, 'a'
-	blt	$a0, $v0, isLower_ch_lt_a
-	nop	# in delay slot
+# if (ch >= 'a')
+li	$v0, 'a'
+blt	$a0, $v0, isLower_ch_lt_a
+nop	# in delay slot
 isLower_ch_ge_a:
-	# if (ch <= 'z')
-	li	$v0, 'z'
-	bgt	$a0, $v0, isLower_ch_gt_z
-	nop	# in delay slot
+# if (ch <= 'z')
+li	$v0, 'z'
+bgt	$a0, $v0, isLower_ch_gt_z
+nop	# in delay slot
 isLower_ch_le_z:
-	addi	$v0, $zero, 1
-	j	isLower_ch_phi
-	nop	# in delay slot
+addi	$v0, $zero, 1
+j	isLower_ch_phi
+nop	# in delay slot
 
-	# ... else
+# ... else
 isLower_ch_lt_a:
 isLower_ch_gt_z:
-	move	$v0, $zero
-	# fallthrough
+move	$v0, $zero
+# fallthrough
 isLower_ch_phi:
 
 isLower__post:
-	# tear down stack frame
-	lw	$ra, -4($fp)
-	la	$sp, 4($fp)
-	lw	$fp, ($fp)
-	jr	$ra
-	nop	# in delay slot
+# tear down stack frame
+lw	$ra, -4($fp)
+la	$sp, 4($fp)
+lw	$fp, ($fp)
+jr	$ra
+nop	# in delay slot
 
 #################################################################### EOF

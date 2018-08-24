@@ -284,18 +284,18 @@ main_theLength_ge_1:
 
     #length-recorder t3
     move $t3,$zero
-#la $t0,theString
+    #la $t0,theString
 
     set_in_loop:
 
     lb $t1,theString($t3)
 
-#move $t0, $zero
+    #move $t0, $zero
 
     check_last_char:
     beqz $t1, loop_for_display
     move $a0,$t1
-# beqz $s2, set_up_loop
+    # beqz $s2, set_up_loop
     check_upper:
         j isUpper
         bnez $v0, upper_char_writter
@@ -305,17 +305,32 @@ main_theLength_ge_1:
     space_char:
         li $t0,' '
         #write a loop to put all space
-
+        li $t2,0
+        li $t4,81
         space_loop:
-            sb $t0,bigString($)
-
-        j space_loop
+            sb $t0,bigString($t3)
+            addi $t2,$t2,1
+            beq $t2,$t4,next_char
+            addi $t3,$t3,1
+            j space_loop
         #add $t0,$t0,90
         #write a loop to put all space
-        j next_char
+
 
 
 next_char:
+    add $t3,$t3,1
+    li $t2,0
+    li $t4,10
+    li $t0,' '
+    space_between_char_loop:
+        sb $t0,bigString($t3)
+        addi $t2,$t2,1
+        beq $t2,$t4,end_space_loop
+        addi $t3,$t3,1
+        j space_between_char_loop
+
+    end_space_loop:
     add $t3,$t3,1
     j set_in_loop
 
@@ -358,7 +373,7 @@ loop_for_display:
     add $t1,$t1,1
     mul $t1,$s0,$t1
     #t1 iteration, t0 start_col
-    addi $t1,$t1,$t0
+    add $t1,$t1,$t0
     #can use -1??
     addi $t0,$t0,-1
 
@@ -452,14 +467,14 @@ rows_loop:
     mul $t4,$t5,$t3
     add $t4,$t4,$t1
     li $t5,' '
-    sb $t5,diaplay($t4)   # display[row][out_col] = ' ';
+    sb $t5,display($t4)   # display[row][out_col] = ' ';
     addi $t3,$t3,1
     j end_one_rowloop
 
 copy_bits:
     lw $t2,NROWS
     move $t3,$t0 #in_col = first_col
-    li $t4,NDCOLS
+    lw $t4,NDCOLS
 
 copy_bits_loop_in:
 #a1:length
@@ -692,7 +707,7 @@ delay__post:
 #	- ...
 
 # Structure:
-#	isUpper
+isUpper:
 #	-> [prologue]
 #	-> [epilogue]
 
@@ -709,26 +724,26 @@ la	$sp, -8($fp)
 
 # if (ch >= 'a')
 li	$v0, 'A'
-blt	$a0, $v0, isLower_ch_lt_a
+blt	$a0, $v0, isUpper_ch_lt_a
 nop	# in delay slot
-isLower_ch_ge_a:
+isUpper_ch_ge_a:
 # if (ch <= 'z')
 li	$v0, 'Z'
-bgt	$a0, $v0, isLower_ch_gt_z
+bgt	$a0, $v0, isUpper_ch_gt_z
 nop	# in delay slot
-isLower_ch_le_z:
+isUpper_ch_le_z:
 addi	$v0, $zero, 1
-j	isLower_ch_phi
+j	isUpper_ch_phi
 nop	# in delay slot
 
 # ... else
-isLower_ch_lt_a:
-isLower_ch_gt_z:
+isUpper_ch_lt_a:
+isUpper_ch_gt_z:
 move	$v0, $zero
 # fallthrough
-isLower_ch_phi:
+isUpper_ch_phi:
 
-isLower__post:
+isUpper__post:
 # tear down stack frame
 lw	$ra, -4($fp)
 la	$sp, 4($fp)
@@ -748,7 +763,7 @@ nop	# in delay slot
 ########################################################################
 # .TEXT <isLower>
 	.text
-
+isLower:
 # Frame:	$fp, $ra
 # Uses:		$a0
 # Clobbers:	$v0

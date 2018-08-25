@@ -415,6 +415,8 @@ loop_for_display:
     move $s3,$zero
     move $s3,$t0
 iter_loop:
+
+
     move $a0,$s3
     move $a1,$s4
     jal setUpDisplay
@@ -668,7 +670,7 @@ delay:
 	# x <- 0
 	move	$t0, $zero
 	# These values control the busy-wait.
-	li	$t4, 20000
+	li	$t4, 200
 	li	$t5, 1000
 
 delay_i_init:

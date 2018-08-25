@@ -113,7 +113,7 @@ int main(int argc, char **argv)
       // note that starting_col can go negative
       // in which case we show the string starting from part-way through
       starting_col--;
-     // delay(1);
+      delay(1);
    }
    
    return 0;

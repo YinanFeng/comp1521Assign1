@@ -20,7 +20,7 @@
 #define CLEAR "\033[H\033[2J"
 
 char theString[MAXCHARS+1];     // the input string (from command line)
-char display[NROWS][NDCOLS];    // where text place before output
+char display[NROWS][NDCOLS];    // where text place before outputF
 char bigString[NROWS][NSCOLS];  // big char version of input string
 
 #include "chars.h"
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
       // note that starting_col can go negative
       // in which case we show the string starting from part-way through
       starting_col--;
-      delay(1);
+     // delay(1);
    }
    
    return 0;

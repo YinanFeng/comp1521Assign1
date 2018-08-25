@@ -800,13 +800,11 @@ main_theLength_ge_1:
         beq $t0,$t1,loop_String
         j loop_nrows
 
-
     loop_ncols:
         #record how many bytes to add in t6
 
         li $t6,' '
         li $t7,0
-
         lw $t4,NDCOLS
         move $t7,$t0
         mul $t7,$t7,$t4
@@ -816,96 +814,127 @@ main_theLength_ge_1:
         beq $t3,$t4,end_loop_nrows
         j loop_ncols
 
-
-    #create the bigchars array
-    loop_String:
-
-    move $t0,$zero
+#create the vigchars array
+loop_String:
+    #t1 record the current char
     move $t1,$zero
-
     #length-recorder t3
     move $t3,$zero
-    #la $t0,theString
+    #s1 = (CHRSIZE)
+    lw $s1,CHRSIZE
+    #s2 = (CHRSIZE+1)
+    addi $s2,$s1,1
+    lw $s3,NSCOLS
 
-    set_in_loop:
-
+set_in_loop:
     lb $t1,theString($t3)
 
-    #move $t0, $zero
-
-    check_last_char:
+check_last_char:
     beqz $t1, loop_for_display
-    move $a0,$t1
-    # beqz $s2, set_up_loop
-    check_upper:
-        jal isUpper
-        bnez $v0, upper_char_writter
-    check_lower:
-        jal isLower
-        bnez $v0, lower_char_writter
-    space_char:
-        li $t0,' '
-        #write a loop to put all space
-        li $t2,0
-        li $t4,81
-        space_loop:
-            sb $t0,bigString($t3)
-            addi $t2,$t2,1
-            beq $t2,$t4,next_char
-            addi $t3,$t3,1
-            j space_loop
-        #add $t0,$t0,90
-        #write a loop to put all space
 
-next_char:
-    add $t3,$t3,1
-    li $t2,0
-    li $t4,10
+check_upper:
+    jal isUpper
+    bnez $v0, upper_char_writter
+
+check_lower:
+    jal isLower
+    bnez $v0, lower_char_writter
+
+space_char:
     li $t0,' '
-    space_between_char_loop:
-        sb $t0,bigString($t3)
-        addi $t2,$t2,1
-        beq $t2,$t4,end_space_loop
-        addi $t3,$t3,1
-        j space_between_char_loop
+    #t2 record the number of rows
+    move $t2,$zero
+row_space_loop:
+    #t4 record current col
+    move $t4,$zero
+    j col_space_loop
+end_row_space_loop:
+    addi $t2,$t2,1
+    beq $t2,$s1,extra_ten_space
+    j row_space_loop
 
-    end_space_loop:
-    add $t3,$t3,1
-    j set_in_loop
+col_space_loop:
+    #t5 record which specific place to store
+    move $t5,$zero
+    mul $t5,$t2,$s3
+    add $t5,$t5,$t4
+    #t6=i * (CHRSIZE+1)
+    move $t6,$zero
+    mul $t6,$s2,$t3
+    add $t5,$t5,$t6
+    sb $t0,bigString($t5)
+    #t4 current_col
+    addi $t4,$t4,1
+    beq $t4,$s1,end_row_space_loop
+    j col_space_loop
+
+extra_ten_space:
+    #col: t4,before col t6, store current col in t6
+    add $t6,$t6,$t4
+    move $t2,$zero
+extra_ten_loop:
+    #t5 record which specific place to store
+    move $t5,$zero
+    #t5=row*(n in row)
+    mul $t5,$t2,$s3
+    add $t5,$t5,$t6
+    li $t0,' '
+    sb $t0,bigString($t5)
+    addi $t2,$t2,1
+    beq $t2,$s1,end_set_in_loop
+    j extra_ten_loop
 
 upper_char_writter:
-    li $t4,'A'
-#can lb - lw ???
-    sub $t5,$t1,$t4
-    #the address point to the first element?
-    li $t4,81
-    mul $t5,$t5,$t4
-#rigt way???
-# la $t6,all_chars
-# addu $t6,$t6,$t5
-    add $t4,$t4,$t5
+    li $t0,'A'
+    move $t7,$zero
+    sub $t7,$t1,$t0
+    li $t0,81
+    #t2 record the start memory
+    mul $t7,$t7,$t0
     j copy_char
 
 lower_char_writter:
-    li $t4,'a'
-    sub $t5,$t1,$t4
-    addi $t5,$t5,26
-    li $t4,81
-    mul $t5,$t5,$t4
-# la $t6,all_chars
-#  addu $t6,$t6,$t5
-    add $t4,$t4,$t5
+    li $t0,'a'
+    move $t7,$zero
+    sub $t7,$t1,$t0
+    addi $t7,$t7,26
+    li $t0,81
+    #t2 record the start memory
+    mul $t7,$t7,$t0
     j copy_char
 
 copy_char:
-    lb $t7,all_chars($t5)
-    #right???
+    #t2 record the number of rows
+    move $t2,$zero
+row_char_loop:
+    #t4 record current col
+    move $t4,$zero
+    j col_char_loop
+end_row_char_loop:
+    addi $t2,$t2,1
+    beq $t2,$s1,extra_ten_space
+    j row_char_loop
 
-    sb $t7,bigString($t0)
-    addi $t0,$t0,1
-    addi $t5,$t5,1
-    beq $t5,$t4,next_char
-    j copy_char
+col_char_loop:
+    lb $t0,all_chars($t7)
+    #t5 record which specific place to store
+    move $t5,$zero
+    mul $t5,$t2,$s3
+    add $t5,$t5,$t4
+    #t6=i * (CHRSIZE+1)
+    move $t6,$zero
+    mul $t6,$s2,$t3
+    add $t5,$t5,$t6
+    sb $t0,bigString($t5)
+    #t4 current_col
+    addi $t4,$t4,1
+    addi $t7,$t7,1
+    beq $t4,$s1,end_row_char_loop
+    j col_char_loop
+
+end_set_in_loop:
+    add $t3,$t3,1
+    j set_in_loop
 
 
 loop_for_display:
@@ -913,22 +942,29 @@ loop_for_display:
     lw $t1,CHRSIZE
     add $t1,$t1,1
     mul $t1,$s0,$t1
+    move $s4,$t1
     #t1 iteration, t0 start_col
     add $t1,$t1,$t0
-    #can use -1??
-    addi $t0,$t0,-1
-
-    move $t2,$zero
+    move $s1,$t1
+    li $t3,1
+    sub $t0,$t0,$t3
+    move $s2,$zero
+    move $s3,$zero
+    move $s3,$t0
 iter_loop:
-    move $a0,$t0
-    move $a1,$s0
+    move $a0,$s3
+    move $a1,$s4
     jal setUpDisplay
     jal showDisplay
     li $a0,1
-    jal delay
-    add $t2,$t2,1
-    add $t0,$t0,-1
-    beq $t2,$t1,end_this_fun
+#    jal delay
+
+    add $s2,$s2,1
+    #s3 starting_col
+    sub $s3,$s3,1
+    li $t3,1
+    sub $t0,$t0,$t3
+    beq $s2,$s1,end_this_fun
     j iter_loop
 
 
@@ -995,12 +1031,12 @@ set_else:
     li $t1,0
     lw $t2,NROWS
     out_loop:
-    li $t3,0     #t3->rows
-    beq $a0,$t1,copy_bits
-    j rows_loop
+        li $t3,0     #t3->rows
+        beq $a0,$t1,copy_bits
+        j rows_loop
     end_one_rowloop:
-    addi $t1,$t1,1
-    j out_loop
+        addi $t1,$t1,1
+        j out_loop
 
 rows_loop:
     beq $t2,$t3,end_one_rowloop
@@ -1031,7 +1067,7 @@ back_in:
 copy_bit_loop_out:
 
     beq $t2,$t5,back_in #for (row = 0; row < NROWS; row++)
-    li $t6,80
+    li $t6,9000
     mul $t6,$t6,$t5
     add $t6,$t6,$t3
     lb $t7,bigString($t6)
@@ -1091,6 +1127,7 @@ lw $t2,NDCOLS
 # ... TODO ...
 
 #printf(CLEAR);
+
 la	$a0, CLEAR
 li	$v0, 4
 syscall
